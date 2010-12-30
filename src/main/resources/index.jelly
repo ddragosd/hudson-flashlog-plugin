@@ -1,0 +1,10 @@
+<!--
+  This view is used to render the plugin list page.
+
+  Since we don't really have anything dynamic here, let's just use static HTML. 
+-->
+<div>
+  This plugin gives you access to the Flash Player Logs generated during the build.
+
+  The flashlog.txt will be stored in the build artifacts.
+</div>
