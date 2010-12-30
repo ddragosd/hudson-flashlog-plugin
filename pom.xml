@@ -17,6 +17,7 @@
     <description>Hudson plugin which allows you to capture the flash logs during a build. This is useful to debug unit
         tests or integration tests.
     </description>
+    <url>http://wiki.hudson-ci.org/display/HUDSON/FlashLog+Plugin</url>
 
     <developers>
         <developer>
