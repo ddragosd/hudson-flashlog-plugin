@@ -16,10 +16,14 @@ public class FlashLogFileProperty extends NodeProperty<Node>
     public String customFlashLogPath;
 
     @DataBoundConstructor
-    public FlashLogFileProperty() {}
+    public FlashLogFileProperty(String customPath)
+    {
+        // TBD: maybe normalize the path ?
+        this.customFlashLogPath = customPath;
+    }
 
     @Extension
-    public static class DescriptorImpl extends NodePropertyDescriptor
+    public static class FlashLogFilePropertyDescriptor extends NodePropertyDescriptor
     {
         @Override
         public String getDisplayName()

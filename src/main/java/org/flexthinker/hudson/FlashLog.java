@@ -3,6 +3,7 @@ package org.flexthinker.hudson;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Iterator;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -17,7 +18,6 @@ import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 
 /**
- *
  * This plugin enables you to capture Flash Player logs that were recorded during a build.
  *
  * @author Dragos Dascalita Haut
@@ -41,25 +41,38 @@ public class FlashLog extends BuildWrapper
     {
         final PrintStream logger = listener.getLogger();
 
-        logger.println("FlashLog setUp ... ");
+        logger.println("[FlashLog] [INFO] setting up ... ");
+
 
         // skip execution if this node is disabled
-        if ( build.getBuiltOn().getNodeProperties().get(NodePropertyImpl.class) != null) {
-            return new Environment(){};
+        if (Hudson.getInstance().getGlobalNodeProperties().get(FlashLogNodePropertyImpl.class) != null)
+        {
+            logger.println("[FlashLog] [INFO] skipping execution as FlashLog is not enabled on this node.");
+            return new Environment()
+            {
+            };
         }
 
         DescriptorImpl DESCRIPTOR = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
         String tempPath = DESCRIPTOR.getFlashlogPath();
 
-        if ( build.getBuiltOn().getNodeProperties().get(FlashLogFileProperty.class) != null )
+        FlashLogFileProperty logFileProperty = Hudson.getInstance().getGlobalNodeProperties().get(FlashLogFileProperty.class);
+
+        if ( logFileProperty != null)
         {
-            FlashLogFileProperty fp = build.getBuiltOn().getNodeProperties().get(FlashLogFileProperty.class);
-            if ( fp != null && fp.customFlashLogPath != null && fp.customFlashLogPath.toString().length() > 10 )
+            File logF = new File(logFileProperty.customFlashLogPath);
+            if (logF.exists())
             {
-                // TODO: should check if this path exists ?
-                tempPath = fp.customFlashLogPath;
+                tempPath = logFileProperty.customFlashLogPath;
+            }
+            else
+            {
+                logger.println("[FlashLog] [WARNING] The given logfile doesn't exists : " + logFileProperty.customFlashLogPath +
+                        " ! The default path will be used.");
             }
         }
+
+
 
         final String flashlogPath = tempPath;
 
@@ -82,17 +95,17 @@ public class FlashLog extends BuildWrapper
     private boolean createNewFlashLog(String flashlogPath, AbstractBuild build, BuildListener listener)
             throws IOException, InterruptedException
     {
-        //1. rename flashlogPath into flashlogPath + '.old';
+        //1. backup current logs
         FilePath logFile = new FilePath(new File(flashlogPath));
         if (logFile.exists())
         {
             logFile.copyTo(new FilePath(new File(flashlogPath + ".old".toString())));
         }
 
-        //2. create a new empty file, flashlogPath
-        logFile.write("FLASH LOG FOR BUILD:" + build.getDisplayName(), null ); // null uses the platform encoding
+        //2. create a clean log file to store logs during build
+        logFile.write("FLASH LOG FOR BUILD:" + build.getDisplayName() + "\n", null);
 
-        listener.getLogger().println("Listening for flash logs from: " + logFile.toURI() );
+        listener.getLogger().println("[FlashLog] [INFO] Listening for flash logs from: " + logFile.toURI());
 
         return true;
     }
@@ -100,23 +113,23 @@ public class FlashLog extends BuildWrapper
     private boolean restoreOriginalFlashLog(String flashlogPath, AbstractBuild build, BuildListener listener)
             throws IOException, InterruptedException
     {
-        //1. move flashlogPath into artifacts
+        //1. copy logs into build artifacts
         FilePath logFile = new FilePath(new File(flashlogPath));
 
         FilePath ws = build.getWorkspace();
         File artifactsDir = build.getArtifactsDir();
         artifactsDir.mkdirs();
 
-        listener.getLogger().println("Saving flash log into artifacts dir, in " + artifactsDir.getAbsolutePath() );
-        if ( logFile.exists() )
+        listener.getLogger().println("[FlashLog] [INFO] Saving flash log into artifacts dir, in " + artifactsDir.getAbsolutePath());
+        if (logFile.exists())
         {
-            logFile.copyTo( new FilePath(artifactsDir).child(LOG_FILENAME));
+            logFile.copyTo(new FilePath(artifactsDir).child(LOG_FILENAME));
         }
 
 
         //2. restore back the original flashlog.txt
         FilePath oldLogFile = new FilePath(new File(flashlogPath + ".old".toString()));
-        if ( oldLogFile.exists() )
+        if (oldLogFile.exists())
         {
             oldLogFile.copyTo(logFile);
         }
@@ -127,10 +140,14 @@ public class FlashLog extends BuildWrapper
     @Extension
     public static final class DescriptorImpl extends BuildWrapperDescriptor
     {
-        private static final String DEFAULT_LINUX_FLASH_LOG = "~/.macromedia/Flash_Player/Logs/flashlog.txt";
-        private static final String DEFAULT_OSX_FLASH_LOG = "~/Library/Preferences/Macromedia/Flash Player/Logs/flashlog.txt";
-        private static final String DEFAULT_WIN_XP_FLASH_LOG = "~\\Application Data\\Macromedia\\Flash Player\\Logs\\flashlog.txt";
-        private static final String DEFAULT_WIN_VISTA_FLASH_LOG = "~\\AppData\\Roaming\\Macromedia\\Flash Player\\Logs\\flashlog.txt";
+        private static final String DEFAULT_LINUX_FLASH_LOG =
+                "~/.macromedia/Flash_Player/Logs/flashlog.txt";
+        private static final String DEFAULT_OSX_FLASH_LOG =
+                "~/Library/Preferences/Macromedia/Flash Player/Logs/flashlog.txt";
+        private static final String DEFAULT_WIN_XP_FLASH_LOG =
+                "~\\Application Data\\Macromedia\\Flash Player\\Logs\\flashlog.txt";
+        private static final String DEFAULT_WIN_VISTA_FLASH_LOG =
+                "~\\AppData\\Roaming\\Macromedia\\Flash Player\\Logs\\flashlog.txt";
 
         private String flashlogPath = DEFAULT_LINUX_FLASH_LOG;
 
@@ -156,20 +173,20 @@ public class FlashLog extends BuildWrapper
         public String getFlashlogPath()
         {
             String OS = System.getProperty("os.name").toLowerCase();
-            if ( OS.indexOf("xp") >= 0 )
+            if (OS.indexOf("xp") >= 0)
             {
                 flashlogPath = DEFAULT_WIN_XP_FLASH_LOG;
             }
-            else if (OS.indexOf("vista") >= 0 )
+            else if (OS.indexOf("vista") >= 0)
             {
                 flashlogPath = DEFAULT_WIN_VISTA_FLASH_LOG;
             }
-            else if ( OS.indexOf("mac") >= 0 )
+            else if (OS.indexOf("mac") >= 0)
             {
                 flashlogPath = DEFAULT_OSX_FLASH_LOG;
             }
 
-            flashlogPath = flashlogPath.replaceFirst("~",System.getProperty("user.home"));
+            flashlogPath = flashlogPath.replaceFirst("~", System.getProperty("user.home"));
 
             return flashlogPath;
         }

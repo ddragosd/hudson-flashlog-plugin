@@ -13,13 +13,13 @@ import hudson.slaves.NodePropertyDescriptor;
  *
  * @author Dragos Dascalita Haut
  */
-public class NodePropertyImpl extends NodeProperty<Node>
+public class FlashLogNodePropertyImpl extends NodeProperty<Node>
 {
     @DataBoundConstructor
-    public NodePropertyImpl() {}
+    public FlashLogNodePropertyImpl() {}
 
     @Extension
-    public static class DescriptorImpl extends NodePropertyDescriptor
+    public static class FlashLogPropertyDescriptor extends NodePropertyDescriptor
     {
         @Override
         public String getDisplayName()
