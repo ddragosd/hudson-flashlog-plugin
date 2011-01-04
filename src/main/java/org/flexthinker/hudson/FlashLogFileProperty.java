@@ -28,7 +28,7 @@ public class FlashLogFileProperty extends NodeProperty<Node>
         @Override
         public String getDisplayName()
         {
-            return "Specify a custom path to locate Flash Player's log";
+            return Messages.FlashLog_File_description();
         }
 
     }

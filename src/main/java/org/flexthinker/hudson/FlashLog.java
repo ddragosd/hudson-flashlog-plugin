@@ -160,7 +160,7 @@ public class FlashLog extends BuildWrapper
         @Override
         public String getDisplayName()
         {
-            return "This build generates Flash/Flex apps and I want to capture flash player log during build";
+            return Messages.FlashLog_description();
         }
 
 

@@ -24,7 +24,7 @@ public class FlashLogNodePropertyImpl extends NodeProperty<Node>
         @Override
         public String getDisplayName()
         {
-            return "Don't save flashlog on this node";
+            return Messages.FlashLog_Node_description();
         }
 
     }
